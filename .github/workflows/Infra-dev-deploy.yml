@@ -1,0 +1,88 @@
+name: 'TF HUAWEI INFRA DEV APPLY ENVIRONMENT'
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - develop
+
+env:
+  HUAWEI_BASTION_PRIVATE: ${{ secrets.HUAWEI_BASTION_PRIVATE }}
+  WORKSPACE: 'dev'
+jobs:
+
+  tf-apply-develop:
+    if: github.ref == 'refs/heads/develop'
+    name: 'Terraform Apply Dev'
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Authenticate to Huawei Cloud 
+        uses: huaweicloud/auth-action@v1.1.0
+        with:
+          access_key_id: ${{ secrets.HW_ACCESS_KEY }}
+          secret_access_key: ${{ secrets.HW_SECRET_KEY }}
+          region: ${{ secrets.HW_REGION_NAME }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        
+      - name: Terraform Init
+        id: init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.HW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HW_SECRET_KEY }}
+        run: |
+          terraform init -backend-config=environments/dev/dev.conf
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -json
+
+      - name: Terraform Apply DEV
+        id: Apply
+        env:
+          HW_ACCESS_KEY: ${{ secrets.HW_ACCESS_KEY }}
+          HW_SECRET_KEY: ${{ secrets.HW_SECRET_KEY }}
+          HW_REGION_NAME: ${{ secrets.HW_REGION_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.HW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HW_SECRET_KEY }}
+          TF_VAR_TERRAFORM_USER_ID: ${{ env.TF_VAR_TERRAFORM_USER_ID }}
+          TF_VAR_cloudflare_api_user_service_key: ${{ secrets.TF_VAR_CLOUDFLARE_API_USER_SERVICE_KEY }}
+          TF_VAR_cloudflare_api_token: ${{ secrets.TF_VAR_CLOUDFLARE_API_TOKEN }}
+        run: |
+          terraform workspace select ${{ env.WORKSPACE }}
+          terraform apply -var-file=environments/dev/dev.tfvars -input=false -auto-approve
+        continue-on-error: false
+
+
+      - name: Apply output
+        uses: actions/github-script@v5
+        env:
+          APPLY: "terraform\n${{ steps.apply.outputs.stdout }}"
+          VALIDATE: "terraform\n${{ steps.validate.outputs.stdout }}"          
+        with:
+          github-token: ${{ secrets.ACCESS_TOKEN_INFRA_DEV }}
+          script: |
+            const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Apply 📖\`${{ steps.apply.outcome }}\`
+            <details><summary>Show Apply</summary>
+            \`\`\`hcl
+            ${process.env.APPLY}
+            \`\`\`
+            </details>
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })

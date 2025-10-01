@@ -1,0 +1,12 @@
+#### HABARIPAY TEST #####
+server {
+    listen 80;
+
+    server_name localhost;
+        
+    location / {
+        proxy_pass  http://10.83.1.10:10011;
+        include proxy_params;
+    }
+
+}

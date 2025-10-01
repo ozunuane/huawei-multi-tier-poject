@@ -1,0 +1,12 @@
+server {
+    listen 80;
+    location /NipInwardWebService {
+        if ($request_uri ~* "wsdl|xsd=xsd[01]$") {
+            proxy_pass http://localhost:10011;
+        }
+        proxy_pass {{ prod_vpn_ip_address }};
+    }
+    location / {
+        proxy_pass {{ prod_vpn_ip_address }};
+    }
+}

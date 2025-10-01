@@ -1,0 +1,63 @@
+**/.terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+access.sh
+.env
+# Local .terraform directories
+**/.terraform/*
+.pem
+*.pem
+dev-local.tfvars
+.tfstate files
+*.tfstate
+*.tfstate.*
+terraform.tfstate.backup
+terraform.tfstate
+terraform.json
+.default.tfstate
+default.tfstate
+*.state
+# Crash log files
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.idea
+*.iml
+*.
+inspired-victor-344313-5736145f93f2.json
+gcp_key.json
+*.json
+set_local_env.sh
+afl-keypair-test.pem
+bastion-keypair.pem
+
+
+
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-image-updater-config
+  namespace: argocd
+data:
+  registries.conf: |
+    registries:
+      - name: SWR
+        api_url: https://swr.<region>.myhuaweicloud.com
+        prefix: swr.<region>.myhuaweicloud.com
+        ping: yes
+        insecure: no
+        credentials: pullsecret:argocd/swr-docker-secret

@@ -1,0 +1,57 @@
+
+---
+- name: Install Nginx and configure NipInward reverse proxy
+  hosts: all
+  become: true
+  tasks:
+    - name: Update package cache
+      apt: update_cache=yes
+
+    - name: Install Nginx
+      apt: name=nginx state=present
+
+    - name: Read prod.conf file
+      set_fact:
+        prod_config_vars: "{{ lookup('file', 'prod.conf') }}"
+
+    - name: Parse dev.conf variables (optional)
+      set_fact:
+        prod_vpn_ip_address: "{{ prod_config_vars | regex_replace('prod_vpn_ip_address=(.*)', '\\1') }}"
+
+    - name: Copy NipInward reverse proxy configuration
+      template:
+        src: nip-inward-reverse-proxy.conf.j2
+        dest: /etc/nginx/sites-available/nip-inward-reverse-proxy.conf
+        owner: root
+        group: root
+        mode: 0644
+      vars:
+        prod_vpn_ip_address: "{{ prod_vpn_ip_address }}"  # Retrieved from dev.conf or parsing task
+
+    - name: Enable NipInward reverse proxy configuration
+      file:
+        src: ansible/dev/nip-conf/nip-inward-reverse-proxy.conf.j2
+        dest: /etc/nginx/sites-enabled/
+        state: link
+
+
+    - name: Reload Nginx configuration
+      service:
+        name: nginx
+        state: reloaded
+
+
+  # vars:
+  #   your_domain_name: "your_domain_name"  # Replace with your actual domain name
+
+# - name: Include NipInward template (optional)
+#   hosts: all
+#   tasks:
+#     - include_vars: nip-inward-reverse-proxy.vars.j2
+
+#   templates:
+#     - src: nip-inward-reverse-proxy.conf.j2
+#       dest: /etc/nginx/sites-available/nip-inward-reverse-proxy.conf
+#       owner: root
+#       group: root
+#       mode: 0644
