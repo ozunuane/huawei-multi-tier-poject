@@ -6,7 +6,7 @@ module "records_A" {
   cloudflare_zone_id = var.cloudflare_zone_id
   type               = "A"
   ### ELB IP ADDRESS ##
-  ip_address = "203.123.80.236"
+  ip_address = "205.153.80.236"
 }
 
 
